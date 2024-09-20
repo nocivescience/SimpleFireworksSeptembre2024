@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Fireworks</title>
 </head>
 
 <body>
@@ -12,17 +12,51 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"
         integrity="sha512-0zGLOFv/+OQ6YfVCSGDQWhrDRx0ONmBqWvs3gI4olm8i6xtKoG1FhEnB4eTaWCVnojyfUDgE8Izeln+mAJAkFA=="
         crossorigin="anonymous" referrerpolicy="no-referrer">
-        </script>
+    </script>
+
     <script>
+        const fireworks = [];
+        let gravity;
+
+        function setup() {
+            createCanvas(800, 400);
+            colorMode(HSB);
+            gravity = createVector(0, 0.2); // Gravedad que afecta a las partículas
+            stroke(255);
+            strokeWeight(4);
+            background(0);
+        }
+
+        function draw() {
+            colorMode(RGB);
+            background(0, 0, 0, 25);
+
+            if (random(1) < 0.03) {
+                fireworks.push(new Firework());
+            }
+
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                fireworks[i].update();
+                fireworks[i].show();
+
+                if (fireworks[i].done()) {
+                    fireworks.splice(i, 1);
+                }
+            }
+        }
 
         class Particle {
-            constructor(x, y, velocity, color, exploded) {
+            constructor(x, y, hu, isFirework) {
                 this.pos = createVector(x, y);
-                this.vel = velocity;
-                this.acc = createVector(0, 0);
-                this.lifespan = 255;
-                this.color = color;
-                this.exploded = exploded;
+                this.vel = isFirework ? createVector(0, random(-12, -8)) : p5.Vector.random2D();
+                this.random = Math.random();
+                this.acc = this.random<.3 ? createVector(2, 0) : this.random<.6 ? createVector(-2, 0) : createVector(0, 0); 
+                this.lifespan = 255*Math.random()+50; // Tiempo de vida de las partículas
+                this.hu = hu;
+                this.isFirework = isFirework;
+                if (!isFirework) {
+                    this.vel.mult(random(2, 20*Math.random())); // Velocidad de las chispas
+                }
             }
 
             applyForce(force) {
@@ -30,116 +64,84 @@
             }
 
             update() {
+                if (!this.isFirework) {
+                    this.vel.mult(0.9); // Frenar las partículas explosivas
+                    this.lifespan -= 4; // Reducir el tiempo de vida
+                }
                 this.vel.add(this.acc);
                 this.pos.add(this.vel);
-                this.acc.mult(0);  // Reset acceleration after each update
-                this.lifespan -= 4; // Decrease lifespan for fade effect
+                this.acc.mult(0); // Resetear aceleración
             }
 
             done() {
-                return this.lifespan <= 0;
+                return this.lifespan < 0;
             }
 
             show() {
-                stroke(this.color);
-                strokeWeight(2);
-                fill(this.color, this.lifespan);
-                ellipse(this.pos.x, this.pos.y, 10);
+                colorMode(HSB);
+                if (!this.isFirework) {
+                    strokeWeight(2);
+                    stroke(this.hu, 255, 255, this.lifespan);
+                } else {
+                    strokeWeight(4);
+                    stroke(this.hu, 255, 255);
+                }
+                point(this.pos.x, this.pos.y);
             }
         }
 
-
-        // Inspiration: CC 27: Fireworks by Daniel Shiffman
-        // https://editor.p5js.org/codingtrain/sketches/O2M0SO-WO
-
-        // Soundpack via jnsjknn
-
-        const particles = [];
-        const fireworks = [];
-        let initPos;
-        let launchPos;
-        let vel;
-        let col;
-        let launching = false;
-        let l1, e1, e2;
-        let prompt = 'drag the pod to launch your firework';
-
-        // function preload() {
-        //     l1 = loadSound("sound/l1.mp3");
-        //     e1 = loadSound("sound/e1.mp3");
-        //     e2 = loadSound("sound/e2.mp3");
-        // }
-
-        function setup() {
-            createCanvas(800, 400);
-            textFont('Georgia');
-            textSize(14);
-            initPos = createVector(width / 2, height - 100);
-            col = color(255);
-        }
-
-        function draw() {
-            background(0, 0, 0, 25);
-
-            // l1.setVolume(0.01);
-            // e1.setVolume(0.15);
-            // e2.setVolume(0.15);
-
-            stroke(255);
-            line(width / 2 - 20, height - 100, width / 2 - 20, height);
-            line(width / 2 + 20, height - 100, width / 2 + 20, height);
-
-            // check the launch status to show different launchpad shape
-            if (mouseIsPressed) {
-                constrainedY = constrain(mouseY, 100, height * 2);
-                line(width / 2 - 20, height - 100, mouseX, constrainedY);
-                line(width / 2 + 20, height - 100, mouseX, constrainedY);
-                ellipse(mouseX, constrainedY, 10);
-            }
-            else if (!launching) {
-                line(width / 2 - 20, height - 100, width / 2 + 20, height - 100);
-                ellipse(width / 2, height - 100, 10);
+        class Firework {
+            constructor() {
+                this.hu = random(255); // Tono de color
+                this.firework = new Particle(random(width), height, this.hu, true);
+                this.exploded = false;
+                this.particles = [];
             }
 
-            noStroke();
+            update() {
+                if (!this.exploded) {
+                    this.firework.applyForce(gravity); // Aplicar gravedad al cohete
+                    this.firework.update();
 
-            // update and show the status of the particles
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].show();
-                if (particles[i].done()) particles.splice(i, 1);
-                // allow next launch if
-                if (launching && !mouseIsPressed && particles[particles.length - 1].pos.y < height - 100) launching = false;
+                    if (this.firework.vel.y >= 0) {
+                        this.exploded = true;
+                        this.explode();
+                    }
+                }
+
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    this.particles[i].applyForce(gravity); // Aplicar gravedad a las partículas
+                    this.particles[i].update();
+
+                    if (this.particles[i].done()) {
+                        this.particles.splice(i, 1);
+                    }
+                }
             }
 
-            // update and show the status of the fireworks
-            for (let i = 0; i < fireworks.length; i++) {
-                fireworks[i].update();
-                fireworks[i].show();
-                if (fireworks[i].done()) fireworks.splice(i, 1);
+            explode() {
+                for (let i = 0; i < 100; i++) {
+                    let p = new Particle(this.firework.pos.x, this.firework.pos.y, this.hu, false);
+                    this.particles.push(p);
+                }
             }
 
-            // show the prompt
-            fill(255);
-            text(prompt, width / 2 + 40, height - 20);
-        }
+            done() {
+                return this.exploded && this.particles.length === 0;
+            }
 
-        // initiate the launch while pressed
-        function mousePressed() {
-            if (!launching) launching = true;
-        }
+            show() {
+                if (!this.exploded) {
+                    this.firework.show();
+                }
 
-        // start the launch processes and initiate the particle
-        function mouseReleased() {
-            constrainedY = constrain(mouseY, 100, height * 2);
-            launchPos = createVector(mouseX, constrainedY);
-            vel = p5.Vector.sub(initPos, launchPos);
-            vel.mult(0.1);
-            // l1.play();
-            particles.push(new Particle(mouseX, constrainedY, vel, col, false));
+                for (let i = 0; i < this.particles.length; i++) {
+                    this.particles[i].show();
+                }
+            }
         }
-
     </script>
+
 </body>
 
 </html>
