@@ -6,7 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fireworks</title>
 </head>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: black;
+    }
 
+    canvas {
+        display: block;
+    }
+</style>
 <body>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"
@@ -19,7 +33,7 @@
         let gravity;
 
         function setup() {
-            createCanvas(800, 400);
+            createCanvas(windowWidth, windowHeight);
             colorMode(HSB);
             gravity = createVector(0, 0.2); // Gravedad que afecta a las partículas
             stroke(255);
